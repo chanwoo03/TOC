@@ -366,9 +366,9 @@ function App() {
                     (l) =>
                       l.value === "skipped" &&
                       l.date >=
-                        new Date(Date.now() - 6 * 86400000).toLocaleDateString(
-                          "sv-SE",
-                        ),
+                      new Date(Date.now() - 6 * 86400000).toLocaleDateString(
+                        "sv-SE",
+                      ),
                   ).length > 0
                     ? "최근 7일간 미복용 기록이 있어요. 자주 놓치는 시간대를 확인하고 알림 시간을 조정해 보세요. 실제 복용 시간 변경은 처방 지시를 먼저 확인하세요."
                     : "최근 7일간 미복용 기록이 없어요. 기록이 쌓이면 놓치기 쉬운 시간대를 살펴볼 수 있어요."}
@@ -399,7 +399,7 @@ function App() {
                         <small>
                           {
                             ["일", "월", "화", "수", "목", "금", "토"][
-                              d.getDay()
+                            d.getDay()
                             ]
                           }
                         </small>
@@ -700,10 +700,10 @@ function App() {
                   {!meds.some(
                     (m) => ocr.includes(m.name) || ocr.includes(m.ingredient),
                   ) && (
-                    <p className="muted">
-                      일치하는 후보가 없어요. 내 약에서 직접 검색하세요.
-                    </p>
-                  )}
+                      <p className="muted">
+                        일치하는 후보가 없어요. 내 약에서 직접 검색하세요.
+                      </p>
+                    )}
                 </section>
               </div>
               <div className="tip">
@@ -755,8 +755,8 @@ function App() {
                   className="outline"
                   onClick={() => {
                     const blob = new Blob([JSON.stringify(data, null, 2)], {
-                        type: "application/json",
-                      }),
+                      type: "application/json",
+                    }),
                       url = URL.createObjectURL(blob),
                       link = document.createElement("a");
                     link.href = url;
