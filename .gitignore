@@ -1,0 +1,29 @@
+# Local dependencies and build output (the GitHub Pages site is in docs/)
+**/node_modules/
+**/.pnpm-store/
+**/.vite/
+**/dist/
+**/build/
+**/coverage/
+
+# Local test/browser artifacts
+**/playwright_chromiumdev_profile-*/
+**/playwright-artifacts-*/
+**/playwright-report/
+**/test-results/
+
+# Credentials and machine-specific settings
+**/.vscode/sftp.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Original downloaded dataset; the curated workbook is in 의약품_데이터/
+/e약은요정보검색.CSV

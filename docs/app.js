@@ -1,7 +1,15 @@
 "use strict";
 const slides=[
-  "MediSync AI","발표 순서","주제 선정 이유","복약 관리에서 겪는 두 가지 어려움",
-  "주요 기능","주요 기능 상세","개발 환경","개발 도구","4주 개발 계획","감사합니다"
+  "MediSync AI · 이번 주 진행 보고",
+  "이번 주까지 구현한 웹 데모",
+  "의약품 데이터는 어디까지 준비됐나",
+  "약 정보는 이렇게 확인하고 연결한다",
+  "지금 실제로 사용하는 기술",
+  "AI · Skill · MCP는 각각 무엇을 하나",
+  "OCR와 알림 분석은 어떻게 작동하나",
+  "4주 개발 간트차트",
+  "현재 미완료 항목과 다음 작업",
+  "감사합니다"
 ];
 const image=document.getElementById("slide"), counter=document.getElementById("counter");
 const title=document.getElementById("slide-title"), previous=document.getElementById("previous"), next=document.getElementById("next");
