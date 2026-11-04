@@ -1,15 +1,16 @@
 "use strict";
 const slides = [
   "MediSync AI · 이번 주 진행 보고",
-  "이번 주까지 구현한 웹 데모",
-  "의약품 데이터는 어디까지 준비됐나",
-  "약 정보는 이렇게 확인하고 연결한다",
-  "지금 실제로 사용하는 기술",
-  "AI · Skill · MCP는 각각 무엇을 하나",
-  "OCR와 알림 분석은 어떻게 작동하나",
+  "현재 실제로 보여줄 수 있는 것",
+  "시연 ① 오늘 화면",
+  "시연 ② 약 등록과 시간 설정",
+  "시연 ③ 복용을 놓쳤을 때",
+  "시연 ④ 복용 기록",
+  "약 정보 준비 상황",
+  "OCR 시험 결과와 시연 방법",
+  "AI · Skill · MCP 사용 범위",
   "4주 개발 간트차트",
-  "현재 미완료 항목과 다음 작업",
-  "감사합니다"
+  "다음 주에 할 일"
 ];
 const image = document.getElementById("slide"), counter = document.getElementById("counter");
 const title = document.getElementById("slide-title"), previous = document.getElementById("previous"), next = document.getElementById("next");
