@@ -1,16 +1,12 @@
 "use strict";
 const slides = [
-  "MediSync AI · 이번 주 진행 보고",
-  "현재 실제로 보여줄 수 있는 것",
-  "시연 ① 오늘 화면",
-  "시연 ② 약 등록과 시간 설정",
-  "시연 ③ 복용을 놓쳤을 때",
-  "시연 ④ 복용 기록",
-  "약 정보 준비 상황",
-  "OCR 시험 결과와 시연 방법",
-  "AI · Skill · MCP 사용 범위",
-  "4주 개발 간트차트",
-  "다음 주에 할 일"
+  "MediSync AI · 이번 주 개발 현황",
+  "4주 계획과 현재 위치",
+  "100개 제품과 성분 연결",
+  "사진 ① 공통 성분 확인",
+  "사진 ② 출처가 있는 주의 사례",
+  "OCR은 연결했지만 인식 결과가 부정확",
+  "다음 주: 웹 마무리와 앱 전환"
 ];
 const image = document.getElementById("slide"), counter = document.getElementById("counter");
 const title = document.getElementById("slide-title"), previous = document.getElementById("previous"), next = document.getElementById("next");
@@ -18,7 +14,7 @@ const viewer = document.getElementById("viewer"), list = document.getElementById
 const listButton = document.getElementById("toggle-list"), fullscreen = document.getElementById("fullscreen");
 const errorMessage = document.getElementById("image-error"), notice = document.getElementById("notice");
 let current = 0, touchStart = null;
-const path = i => "slides/slide-" + String(i + 1).padStart(2, "0") + ".png";
+const path = i => "slides-20261111-v3/slide-" + String(i + 1).padStart(2, "0") + ".png";
 function fromHash() { const m = location.hash.match(/^#slide-(\d+)$/); return m ? Math.min(slides.length - 1, Math.max(0, Number(m[1]) - 1)) : 0; }
 function show(index, updateHash = true) {
   current = Math.min(slides.length - 1, Math.max(0, index)); errorMessage.hidden = true;

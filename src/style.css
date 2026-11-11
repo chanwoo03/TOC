@@ -125,6 +125,19 @@ header span {
   font-weight: 400;
   color: #9aaba4;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.presentation-link {
+  color: #168e73;
+  font-size: 13px;
+  text-decoration: none;
+}
+.presentation-link:hover {
+  text-decoration: underline;
+}
 .avatar {
   height: 34px;
   width: 34px;
@@ -138,6 +151,51 @@ header span {
   padding: 34px 38px 60px;
   max-width: 1500px;
   margin: auto;
+}
+.reminder-board {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.reminder-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 26px;
+  background: #fffaf0;
+  border: 1px solid #f0dfb9;
+  border-left: 5px solid #e5a247;
+  border-radius: 14px;
+}
+.reminder-copy small {
+  color: #9a6823;
+  font-weight: 800;
+}
+.reminder-copy h2 {
+  font-size: 19px;
+  margin: 7px 0 12px;
+}
+.reminder-copy ol {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.reminder-copy p {
+  color: #796c55;
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+.reminder-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 320px;
+  flex: none;
+}
+.reminder-actions button {
+  white-space: nowrap;
 }
 .hero {
   background: linear-gradient(115deg, #dcf4e8, #edf9f0);
@@ -297,6 +355,16 @@ h2 {
   color: #549b81;
   font-weight: 800;
   min-width: 48px;
+}
+.time-edit {
+  width: 105px;
+  padding: 7px 5px;
+  border: 1px solid #d6e7dd;
+  border-radius: 7px;
+  color: #237858;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
 }
 .med-emoji {
   width: 42px;
@@ -484,6 +552,27 @@ details input,
   padding: 22px;
   margin-top: 22px;
   color: #667d70;
+}
+.safety-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.safety-results .result {
+  margin-top: 0;
+  min-width: 0;
+}
+.safety-notice {
+  background: #fff;
+  border: 1px solid #e1e9e2;
+}
+.evidence-meta {
+  display: block;
+  color: #667d70;
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 8px 0;
 }
 .result.caution {
   background: #fff9ed;
@@ -689,6 +778,43 @@ textarea {
 .catalog button > span:last-child {
   color: #1c9c70;
 }
+.catalog-count {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.product-detail {
+  border: 1px solid #dcebe1;
+  border-radius: 10px;
+  background: #f8fcf9;
+  padding: 14px;
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #2b4636;
+}
+.product-detail > b {
+  font-size: 14px;
+}
+.product-detail p {
+  margin: 6px 0;
+}
+.product-detail a {
+  font-weight: 700;
+}
+.product-detail details strong {
+  display: block;
+  margin-top: 12px;
+}
+.notice-text {
+  max-height: 130px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+@media (max-width: 900px) {
+  .safety-results {
+    grid-template-columns: 1fr;
+  }
+}
 details {
   background: #f7faf7;
   padding: 12px;
@@ -782,6 +908,12 @@ details input {
   .content {
     padding: 25px;
   }
+  .reminder-card {
+    flex-direction: column;
+  }
+  .reminder-actions {
+    max-width: none;
+  }
   .columns {
     grid-template-columns: 1fr;
   }
@@ -835,6 +967,13 @@ details input {
   }
   .content {
     padding: 17px 14px 42px;
+  }
+  .reminder-card {
+    padding: 17px;
+    gap: 15px;
+  }
+  .reminder-copy h2 {
+    font-size: 17px;
   }
   .hero {
     padding: 26px;
