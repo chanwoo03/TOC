@@ -186,7 +186,7 @@ export const rules = [
     condition: "두 품목번호의 제품을 실제로 함께 복용하려는 경우",
     detail:
       "애드빌정의 e약은요 원문은 저용량 아스피린과 함께 사용할 때 의사 또는 약사와 상의하도록 안내합니다. 처방받은 아스피린을 임의로 중단하지 말고 복용 전 확인하세요.",
-    source: "https://nedrug.mfds.go.kr/searchEasyDrug",
+    source: "https://nedrug.mfds.go.kr/pbp/CCBBB01/getItemDetail?itemSeq=200109769",
     sourceName: "식약처 e약은요 · 애드빌정(품목번호 200109769)",
     reviewStatus: "source_checked",
     reviewedOn: "2026-11-11",

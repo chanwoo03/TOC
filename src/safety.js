@@ -27,13 +27,20 @@ export function getReviewedRule(first, second, rules) {
   return (
     rules.find(
       (rule) =>
-        rule.reviewStatus === "source_checked" &&
-        rule.source &&
-        rule.reviewedOn &&
+        isReviewedRule(rule) &&
         ((rule.a === first.id && rule.b === second.id) ||
           (rule.a === second.id && rule.b === first.id)),
     ) || null
   );
+}
+
+export function isReviewedRule(rule) {
+  return rule.reviewStatus === "source_checked" && Boolean(rule.condition && rule.source && rule.reviewedOn);
+}
+
+export function getReviewedProductRule(first, second, rules) {
+  if (!first?.code || !second?.code) return null;
+  return getReviewedRule({ id: "otc-" + first.code }, { id: "otc-" + second.code }, rules);
 }
 
 export function getReviewedRulesForItems(items, catalog, rules) {

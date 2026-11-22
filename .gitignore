@@ -28,6 +28,9 @@ Thumbs.db
 
 # Original downloaded dataset; the curated workbook is in 의약품_데이터/
 /e약은요정보검색.CSV
+/public/ocr/
+/public/data/easy-drug.json.gz
+/dist-web-next/
 
 # Local OCR experiments
 /test.ipynb

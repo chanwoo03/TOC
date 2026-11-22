@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@tesseract.js-data/eng':
+        specifier: 1.0.0
+        version: 1.0.0
+      '@tesseract.js-data/kor':
+        specifier: 1.0.0
+        version: 1.0.0
       lucide-react:
         specifier: 0.468.0
         version: 0.468.0(react@18.3.1)
@@ -18,6 +24,9 @@ importers:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       tesseract.js:
+        specifier: 5.1.1
+        version: 5.1.1
+      tesseract.js-core:
         specifier: 5.1.1
         version: 5.1.1
     devDependencies:
@@ -313,6 +322,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@tesseract.js-data/eng@1.0.0':
+    resolution: {integrity: sha512-mbTumm6KQPUHyzTPQaF3ObXYnx0SqqfV2nabqFVQBwD6Kl7PhGSLSzOlfFTWy0P3BjghaSKA2W9GB19Jk+ZcTg==}
+
+  '@tesseract.js-data/kor@1.0.0':
+    resolution: {integrity: sha512-tepYhsYiRJ8E44R27MHxVteEDDLfYQxuvM6u4JlEHcCYqwpefvI5TGzoMgB67kunOvtyEJYtT5zfJ/6R6FVU9w==}
+
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
@@ -604,6 +619,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.65.0':
     optional: true
+
+  '@tesseract.js-data/eng@1.0.0': {}
+
+  '@tesseract.js-data/kor@1.0.0': {}
 
   '@types/estree@1.0.9': {}
 

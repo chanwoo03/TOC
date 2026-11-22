@@ -1,136 +1,116 @@
-import React, { useEffect, useState } from "react";
-import { meds, rules, food, initial } from "./data.js";
-import { otcProducts, sharedIngredientPairs } from "./catalog.js";
-import {
-  getProductNotice,
-  getReviewedRule,
-  getReviewedRulesForItems,
-  getSharedIngredients,
-} from "./safety.js";
+import React, { useEffect, useMemo, useState } from "react";
+import { meds, initial } from "./data.js";
 import { detectMealSlots } from "./schedule.js";
-import { dueItems, isValidTime, localDateKey, reminderKey } from "./reminders.js";
+import { buildIndex, duplicateIngredients, loadOfficialCatalog } from "./catalog.js";
+import { CatalogPage, CatalogStatus, ComparePage, ProductPicker } from "./CatalogViews.jsx";
+import { OcrPanel } from "./OcrPanel.jsx";
 const key = "medisync-react-v1",
-  today = () => localDateKey(),
+  today = () => new Date().toLocaleDateString("sv-SE"),
   id = () => Math.random().toString(36).slice(2);
-const restoreData = (value) =>
-  value && Array.isArray(value.items) && Array.isArray(value.logs)
-    ? {
-        ...initial,
-        ...value,
-        custom: Array.isArray(value.custom) ? value.custom : [],
-        snoozes:
-          value.snoozes && typeof value.snoozes === "object" && !Array.isArray(value.snoozes)
-            ? value.snoozes
-            : {},
-      }
-    : initial;
+const emptyProfile = { ...initial, items: [] };
+const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const officialId = (product) => "mfds:" + product.code;
 function App() {
   const [data, setData] = useState(() => {
     try {
       const v = JSON.parse(localStorage.getItem(key));
-      return restoreData(v);
+      return v && Array.isArray(v.items) && Array.isArray(v.logs) ? { ...emptyProfile, ...v } : emptyProfile;
     } catch {
-      return initial;
+      return emptyProfile;
     }
   });
   const [tab, setTab] = useState("홈"),
     [modal, setModal] = useState(""),
-    [search, setSearch] = useState(""),
     [chosen, setChosen] = useState(""),
-    [time, setTime] = useState("08:00"),
+    [time, setTime] = useState(""),
     [note, setNote] = useState(""),
     [customName, setCustomName] = useState(""),
     [customIng, setCustomIng] = useState(""),
-    [a, setA] = useState("thyroid"),
-    [b, setB] = useState("calcium"),
     [date, setDate] = useState(today()),
-    [ocr, setOcr] = useState(""),
     [suggestions, setSuggestions] = useState([]),
-    [message, setMessage] = useState(""),
-    [now, setNow] = useState(() => new Date());
+    [message, setMessage] = useState("");
+  const [source, setSource] = useState({ state: "loading", products: [] });
+  const [attempt, setAttempt] = useState(0);
+  const [detail, setDetail] = useState(null);
+  const retry = () => setAttempt((value) => value + 1);
+  const index = useMemo(() => buildIndex(source.products), [source.products]);
+  const allOfficial = useMemo(() => new Map(source.products.map((product) => [officialId(product), product])), [source.products]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setSource({ state: "loading", products: [] });
+    loadOfficialCatalog(controller.signal).then((result) => {
+      if (!Array.isArray(result.products) || !result.products.length) throw new Error("catalog invalid");
+      if (!controller.signal.aborted) setSource({ state: "ready", products: result.products });
+    }).catch(() => {
+      if (!controller.signal.aborted) setSource({ state: "error", products: [] });
+    });
+    return () => controller.abort();
+  }, [attempt]);
   useEffect(() => localStorage.setItem(key, JSON.stringify(data)), [data]);
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 15000);
+    if (!("Notification" in window) || Notification.permission !== "granted")
+      return;
+    const tick = () => {
+      const hm = new Date().toTimeString().slice(0, 5),
+        d = today();
+      data.items
+        .filter((x) => x.active && x.time === hm)
+        .forEach((x) => {
+          const k = "medisync-alert-" + d + "-" + x.id;
+          if (sessionStorage.getItem(k)) return;
+          sessionStorage.setItem(k, "1");
+          new Notification("MediSync AI 복약 알림", {
+            body: "예정된 복약 기록을 확인해 주세요.",
+          });
+        });
+    };
+    tick();
+    const timer = setInterval(tick, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [data]);
   useEffect(() => {
     if (message) {
       const t = setTimeout(() => setMessage(""), 3500);
       return () => clearTimeout(t);
     }
   }, [message]);
-  const catalog = [...meds, ...otcProducts, ...data.custom],
-    find = (x) =>
-      catalog.find((m) => m.id === x) || {
-        name: "삭제된 항목",
-        ingredient: "확인 필요",
-        emoji: "💊",
-      };
+  const find = (value) => {
+    const official = allOfficial.get(value);
+    return official
+      ? { ...official, ingredient: official.ingredients, emoji: "💊", type: "식약처 일반의약품" }
+      : [...data.custom, ...meds].find((item) => item.id === value)
+        ?? { name: value?.startsWith("mfds:") ? "공식 제품 확인 중" : "확인할 수 없는 항목", ingredient: "확인 필요", emoji: "💊" };
+  };
   const status = (item, d = today()) =>
     data.logs.find((l) => l.item === item && l.date === d)?.value;
   const active = data.items
     .filter((x) => x.active)
     .sort((x, y) => x.time.localeCompare(y.time));
-  const due = dueItems(data, now);
-  const dueIds = new Set(due.map((item) => item.id));
-  useEffect(() => {
-    if (!window.isSecureContext || !("Notification" in window) || Notification.permission !== "granted")
-      return;
-    for (const item of due) {
-      const noticeKey = `medisync-alert-${reminderKey(today(), item.id)}-${data.snoozes?.[reminderKey(today(), item.id)] || "first"}`;
-      if (sessionStorage.getItem(noticeKey)) continue;
-      sessionStorage.setItem(noticeKey, "1");
-      const med = catalog.find((entry) => entry.id === item.med);
-      try {
-        new Notification(`복용 예정: ${med?.name || "약"}`, {
-          body: `${item.time} 예정 · 복용 여부는 앱에서 직접 기록해 주세요.`,
-        });
-      } catch {
-        // The in-page reminder below still works when the system rejects it.
-      }
-    }
-  }, [data, now]);
-  const sharedPairs = sharedIngredientPairs(data.items, catalog);
-  const selectedMed = catalog.find((med) => med.id === chosen);
-  const cautions = getReviewedRulesForItems(data.items, catalog, rules);
+  const activeProducts = [...new Set(active.map((item) => item.med))].map((value) => allOfficial.get(value)).filter(Boolean);
+  const duplicate = duplicateIngredients(activeProducts);
+  const unlinked = active.filter((item) => !allOfficial.has(item.med)).length;
   const record = (item, value, d = today()) => {
-    setData((p) => {
-      const snoozes = { ...p.snoozes };
-      delete snoozes[reminderKey(d, item)];
-      return {
-        ...p,
-        snoozes,
-        logs: [
-          ...p.logs.filter((x) => !(x.item === item && x.date === d)),
-          { item, date: d, value, at: new Date().toISOString() },
-        ],
-      };
-    });
+    setData((p) => ({
+      ...p,
+      logs: [
+        ...p.logs.filter((x) => !(x.item === item && x.date === d)),
+        { item, date: d, value, at: new Date().toISOString() },
+      ],
+    }));
     setMessage(
       value === "taken" ? "복용 완료로 기록했어요." : "미복용으로 기록했어요.",
     );
   };
-  const snooze = (item) => {
-    setData((previous) => ({
-      ...previous,
-      snoozes: {
-        ...previous.snoozes,
-        [reminderKey(today(), item.id)]: new Date(Date.now() + 10 * 60000).toISOString(),
-      },
-    }));
-    setNow(new Date());
-    setMessage("10분 뒤 화면에서 다시 알려드릴게요. 페이지를 열어 두세요.");
-  };
   const openAdd = (med = "") => {
     setChosen(med);
-    setSearch("");
-    setTime("08:00");
+    setTime("");
     setNote("");
     setModal("add");
   };
-  const openOcrReview = (medId) => {
-    setChosen(medId);
-    setSuggestions(detectMealSlots(ocr));
+  const openOcrReview = (product, line) => {
+    setChosen(officialId(product));
+    setSuggestions(detectMealSlots(line));
     setModal("ocr-review");
   };
 
@@ -141,7 +121,7 @@ function App() {
       return;
     }
     if (
-      confirmed.some((slot) => !isValidTime(slot.time))
+      confirmed.some((slot) => !clock.test(slot.time))
     ) {
       setMessage("복용 예정 시간을 확인해 주세요.");
       return;
@@ -165,7 +145,7 @@ function App() {
 
   const add = () => {
     if (!chosen) return setMessage("약을 먼저 선택해 주세요.");
-    if (!isValidTime(time)) return setMessage("복용 예정 시간을 확인해 주세요.");
+    if (!clock.test(time)) return setMessage("실제 복용할 시각을 입력해 주세요.");
     setData((p) => ({
       ...p,
       items: [...p.items, { id: id(), med: chosen, time, active: true, note }],
@@ -204,17 +184,10 @@ function App() {
     record(item.id, "skipped");
     setModal("guide");
   };
-  const comparisonCatalog = [...catalog, food];
-  const firstCompared = comparisonCatalog.find((med) => med.id === a);
-  const secondCompared = comparisonCatalog.find((med) => med.id === b);
-  const comparison = getReviewedRule(firstCompared, secondCompared, rules);
-  const sharedInComparison = getSharedIngredients(firstCompared, secondCompared);
-  const comparedNotices = [firstCompared, secondCompared]
-    .map(getProductNotice)
-    .filter(Boolean);
   const tabs = [
     "홈",
     "내 약",
+    "의약품 정보",
     "함께 먹기",
     "복용 기록",
     "약 봉투 읽기",
@@ -225,26 +198,7 @@ function App() {
       s = status(item.id);
     return (
       <div className="item" key={item.id}>
-        {manage ? (
-          <input
-            className="time-edit"
-            type="time"
-            aria-label={`${med.name} 복용 예정 시간`}
-            value={item.time}
-            onChange={(event) => {
-              if (!isValidTime(event.target.value)) return;
-              setData((previous) => ({
-                ...previous,
-                items: previous.items.map((entry) =>
-                  entry.id === item.id ? { ...entry, time: event.target.value } : entry,
-                ),
-              }));
-              setMessage("알림 시간을 바꿨어요. 실제 복용 시간은 처방 지시를 확인하세요.");
-            }}
-          />
-        ) : (
-          <div className="time">{item.time}</div>
-        )}
+        <div className="time">{item.time}</div>
         <div className="med-emoji">{med.emoji}</div>
         <div className="item-name">
           <b>{med.name}</b>
@@ -293,11 +247,21 @@ function App() {
               </button>
               <button
                 className="light-btn"
-                onClick={() =>
-                  dueIds.has(item.id)
-                    ? snooze(item)
-                    : setMessage("예정 시간이 되면 화면에서 알려드릴게요.")
-                }
+                onClick={() => {
+                  setMessage(
+                    "10분 뒤 다시 알려드릴게요. 페이지를 열어 두세요.",
+                  );
+                  setTimeout(() => {
+                    if (
+                      "Notification" in window &&
+                      Notification.permission === "granted"
+                    )
+                      new Notification("다시 확인: " + med.name, {
+                        body: "복용했다면 앱에서 완료를 기록해 주세요.",
+                      });
+                    else setMessage(med.name + " 복용을 다시 확인해 주세요.");
+                  }, 600000);
+                }}
               >
                 10분 뒤
               </button>
@@ -319,7 +283,7 @@ function App() {
             <b>
               MediSync <em>AI</em>
             </b>
-            <small>복약 생활 데모</small>
+            <small>복약 관리</small>
           </div>
         </div>
         <nav>
@@ -329,13 +293,13 @@ function App() {
               className={tab === x ? "current" : ""}
               onClick={() => setTab(x)}
             >
-              <span>{["⌂", "♡", "⚠", "▦", "▤", "⚙"][i]}</span>
+              <span aria-hidden="true">{["⌂", "♡", "⌕", "⚠", "▦", "▤", "⚙"][i]}</span>
               {x}
             </button>
           ))}
         </nav>
         <div className="aside-note">
-          출처를 확인한 정보도 참고용이에요.
+          검증된 정보만 참고하고
           <br />
           복약 결정은 전문가와 상담하세요.
         </div>
@@ -345,52 +309,9 @@ function App() {
           <div>
             MediSync AI <span>/ {tab}</span>
           </div>
-          <div className="header-actions">
-            <a className="presentation-link" href="./presentation/index.html" target="_blank" rel="noreferrer">
-              발표자료 보기
-            </a>
-            <div className="avatar">{data.name?.slice(0, 1) || "나"}</div>
-          </div>
+          <div className="avatar">{data.name?.slice(0, 1) || "나"}</div>
         </header>
         <div className="content">
-          {due.length > 0 && (
-            <section className="reminder-board" aria-label="복용 시간 알림">
-              {due.map((item) => {
-                const med = find(item.med);
-                return (
-                  <div className="reminder-card" role="alert" key={item.id}>
-                    <div className="reminder-copy">
-                      <small>복용 예정 시간 {item.time}</small>
-                      <h2>{med.name} 복용 여부를 확인해 주세요</h2>
-                      <ol>
-                        {(med.guide || []).slice(0, 3).map((line) => (
-                          <li key={line}>{line}</li>
-                        ))}
-                      </ol>
-                      <p>
-                        일반 안내이며 처방·제품 지시가 우선입니다. 알림을 본 것만으로
-                        복용 완료가 기록되지는 않아요.
-                        {med.source && (
-                          <> <a href={med.source} target="_blank" rel="noreferrer">원문 확인 ↗</a></>
-                        )}
-                      </p>
-                    </div>
-                    <div className="reminder-actions">
-                      <button className="primary" onClick={() => record(item.id, "taken")}>
-                        먹었어요
-                      </button>
-                      <button className="outline" onClick={() => snooze(item)}>
-                        10분 뒤 다시 알림
-                      </button>
-                      <button className="outline" onClick={() => guide(item)}>
-                        복용하지 않음
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </section>
-          )}
           {tab === "홈" && (
             <>
               <div className="hero">
@@ -428,12 +349,12 @@ function App() {
                   <p>직접 완료로 기록</p>
                 </div>
                 <div>
-                  <span>함께 먹기 주의</span>
+                  <span>공식 주성분 중복</span>
                   <strong>
-                    {cautions.length}
+                    {duplicate.length}
                     <small>건</small>
                   </strong>
-                  <p>출처를 확인한 규칙만</p>
+                  <p>등록한 항목 기준</p>
                 </div>
               </div>
               <div className="columns">
@@ -462,28 +383,12 @@ function App() {
                   <div className="heading">
                     <div>
                       <h2>함께 먹기 주의</h2>
-                      <p>선택한 제품에 적용되는 출처 확인 사례예요.</p>
+                      <p>공식 제품에 등록된 성분을 비교했어요.</p>
                     </div>
                   </div>
-                  {cautions.length ? (
-                    cautions.map((r) => (
-                      <div className="warning" key={r.title}>
-                        <b>⚠ {r.title}</b>
-                        <p>{r.detail}</p>
-                        <small className="evidence-meta">
-                          적용 대상: {r.condition} · 출처 확인일: {r.reviewedOn}
-                        </small>
-                        <a href={r.source} target="_blank" rel="noreferrer">
-                          {r.sourceName} ↗
-                        </a>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="info">
-                      현재 등록 목록에 출처를 확인한 주의 규칙이 없습니다.
-                      규칙이 없다는 것은 함께 복용해도 안전하다는 뜻이 아니에요.
-                    </div>
-                  )}
+                  {duplicate.length ? duplicate.map(({ ingredient, products }) => (
+                    <div className="warning" key={ingredient}><b>{ingredient}</b><p>{[...products.values()].join(" · ")}</p></div>
+                  )) : <div className="info">같은 이름으로 등록된 공식 주성분을 찾지 못했어요. 제품별 주의사항은 함께 먹기에서 확인하세요.</div>}
                   <button
                     className="outline full"
                     onClick={() => setTab("함께 먹기")}
@@ -570,162 +475,16 @@ function App() {
                   <div className="empty">등록한 일정이 없습니다.</div>
                 )}
               </section>
-              <section className="panel">
-                <div className="heading">
-                  <h2>같은 성분이 들어간 제품</h2>
-                </div>
-                {sharedPairs.length ? (
-                  sharedPairs.map((pair) => (
-                    <div
-                      className="warning"
-                      key={`${pair.first.itemId}-${pair.second.itemId}`}
-                    >
-                      <b>
-                        {pair.first.name} + {pair.second.name}
-                      </b>
-                      <p>공통 성분: {pair.ingredients.join(", ")}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="muted">
-                    등록된 데이터 제품 사이에서 같은 성분명을 찾지 못했어요.
-                  </p>
-                )}
-                <div className="tip">
-                  ⓘ 성분명 일치만 보여줍니다. 중복 복용 여부나 함께 복용해도
-                  되는지는 이 결과만으로 판단할 수 없어요.
-                </div>
-              </section>
               <div className="tip">
                 ⓘ 같은 이름의 약도 함량·제형·복합성분이 다를 수 있어요. 실제
                 제품과 약 봉투를 확인하세요.
               </div>
             </>
           )}
-          {tab === "함께 먹기" && (
-            <>
-              <div className="page-title">
-                <div>
-                  <small>INTERACTION CHECK</small>
-                  <h1>함께 먹어도 될까요?</h1>
-                  <p>두 항목을 고르면 공통 성분, 제품별 원문, 출처 확인 규칙을 따로 보여줘요.</p>
-                </div>
-              </div>
-              <section className="panel">
-                <div className="compare">
-                  <label>
-                    첫 번째 항목
-                    <select value={a} onChange={(e) => setA(e.target.value)}>
-                      {comparisonCatalog.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.name} ({x.ingredient})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <span>＋</span>
-                  <label>
-                    두 번째 항목
-                    <select value={b} onChange={(e) => setB(e.target.value)}>
-                      {comparisonCatalog.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.name} ({x.ingredient})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                {a === b ? (
-                  <div className="result">서로 다른 항목을 선택해 주세요.</div>
-                ) : (
-                  <div className="safety-results">
-                    <div className="result">
-                      <span>① 공통 성분</span>
-                      <h3>
-                        {sharedInComparison.length
-                          ? sharedInComparison.join(", ")
-                          : firstCompared?.itemId && secondCompared?.itemId
-                            ? "기재된 공통 성분 없음"
-                            : "성분 비교 대상이 아니에요"}
-                      </h3>
-                      <p>
-                        {sharedInComparison.length
-                          ? "두 데이터 제품에 같은 이름의 성분이 기재돼 있어요. 실제 중복 복용 위험은 함량·제형·복용량 확인이 필요해요."
-                          : firstCompared?.itemId && secondCompared?.itemId
-                            ? "기재된 성분명끼리 비교한 결과예요. 성분이 다르다고 함께 복용해도 안전하다는 뜻은 아니에요."
-                            : "정확한 품목번호가 없는 예시·직접 입력 항목은 성분 중복을 자동 판단하지 않아요."}
-                      </p>
-                    </div>
-                    <div className={comparison ? "result caution" : "result"}>
-                      <span>② 두 항목의 주의 규칙</span>
-                      {comparison ? (
-                        <>
-                          <h3>{comparison.title}</h3>
-                          <p>{comparison.detail}</p>
-                          <p className="evidence-meta">
-                            적용 대상: {comparison.condition}<br />
-                            출처 확인일: {comparison.reviewedOn}
-                          </p>
-                          <a href={comparison.source} target="_blank" rel="noreferrer">
-                            {comparison.sourceName} ↗
-                          </a>
-                        </>
-                      ) : (
-                        <>
-                          <h3>등록된 주의 규칙이 없어요.</h3>
-                          <p>안전하다는 뜻은 아니에요. 실제 함께 복용하려면 약사나 의료진에게 확인하세요.</p>
-                        </>
-                      )}
-                    </div>
-                    <div className="result">
-                      <span>③ 각 제품의 이상반응</span>
-                      <h3>제품별 원문 정보</h3>
-                      {comparedNotices.length ? (
-                        comparedNotices.map((notice) => (
-                          <details key={notice.itemId} className="safety-notice">
-                            <summary>{notice.product} · 이상반응 원문 보기</summary>
-                            <p className="notice-text">{notice.adverse || "기재된 원문이 없어요."}</p>
-                            <strong>함께 사용할 때 주의할 약·음식 원문</strong>
-                            <p className="notice-text">{notice.caution || "기재된 원문이 없어요."}</p>
-                            <small>품목번호 {notice.itemId} · 원문 수정일 {notice.modifiedOn}</small>
-                            <br />
-                            <a href={notice.source} target="_blank" rel="noreferrer">e약은요 원문 찾기 ↗</a>
-                          </details>
-                        ))
-                      ) : (
-                        <p>이 조합의 제품별 이상반응 원문은 데모 데이터에 없어요.</p>
-                      )}
-                      <p className="evidence-meta">이상반응은 각 제품의 정보이며, 두 항목을 함께 썼을 때의 결과를 예측한 내용은 아니에요.</p>
-                    </div>
-                  </div>
-                )}
-              </section>
-              <section className="panel">
-                <div className="heading">
-                  <h2>출처를 확인한 데모 사례 {rules.length}건</h2>
-                </div>
-                {rules.map((r) => (
-                  <button
-                    className="rule"
-                    key={r.title}
-                    onClick={() => {
-                      setA(r.a);
-                      setB(r.b);
-                      window.scrollTo(0, 0);
-                    }}
-                  >
-                    <span>⚠️</span>
-                    <div>
-                      <b>{r.title}</b>
-                      <small>{r.detail}</small>
-                      <small className="evidence-meta">{r.sourceName} · 확인일 {r.reviewedOn}</small>
-                    </div>
-                    <span>→</span>
-                  </button>
-                ))}
-              </section>
-            </>
-          )}
+          {tab === "의약품 정보" && <CatalogPage index={index} selected={detail} onSelect={setDetail}
+            onAdd={(product) => openAdd(officialId(product))} state={source.state} retry={retry} />}
+          {tab === "함께 먹기" && <ComparePage index={index} activeProducts={activeProducts} unlinked={unlinked}
+            state={source.state} retry={retry} />}
           {tab === "복용 기록" && (
             <>
               <div className="page-title">
@@ -823,103 +582,8 @@ function App() {
               </div>
             </>
           )}
-          {tab === "약 봉투 읽기" && (
-            <>
-              <div className="page-title">
-                <div>
-                  <small>PRESCRIPTION SCAN</small>
-                  <h1>약 봉투 읽기</h1>
-                  <p>사진에서 글자를 읽고 직접 확인한 뒤 등록하세요.</p>
-                </div>
-              </div>
-              <div className="columns">
-                <section className="panel">
-                  <h2>사진에서 글자 읽기</h2>
-                  <p className="muted">
-                    처음에는 한국어 인식 파일을 받기 위해 인터넷이 필요할 수
-                    있어요.
-                  </p>
-                  <label className="upload">
-                    <span>▤</span>
-                    <b>약 봉투 사진 선택</b>
-                    <small>JPG 또는 PNG 이미지</small>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        setMessage("사진을 읽는 중입니다.");
-                        try {
-                          const { recognize } = await import("tesseract.js");
-                          const r = await recognize(f, "kor+eng");
-                          setOcr(r.data.text);
-                          setMessage("인식 결과를 확인하세요.");
-                        } catch {
-                          setMessage(
-                            "인식에 실패했어요. 샘플이나 직접 입력을 사용하세요.",
-                          );
-                        }
-                      }}
-                    />
-                  </label>
-                  <button
-                    className="outline full"
-                    onClick={() => setOcr("칼슘 영양제\n아침, 저녁")}
-                  >
-                    샘플 약 봉투 불러오기
-                  </button>
-                </section>
-                <section className="panel">
-                  <h2>인식 결과 확인</h2>
-                  <p className="muted">인식된 약은 자동 등록되지 않습니다.</p>
-                  <textarea
-                    value={ocr}
-                    onChange={(e) => setOcr(e.target.value)}
-                    placeholder="인식 결과 또는 약 봉투 내용을 입력하세요."
-                  />
-                  <h3>찾은 후보</h3>
-                  <p className="ocr-detected">
-                    읽은 시간대:{" "}
-                    {detectMealSlots(ocr).length
-                      ? detectMealSlots(ocr)
-                          .map((slot) => slot.label)
-                          .join(" · ")
-                      : "없음 — 직접 확인이 필요해요"}
-                  </p>
-                  {meds
-                    .filter(
-                      (m) => ocr.includes(m.name) || ocr.includes(m.ingredient),
-                    )
-                    .map((m) => (
-                      <button
-                        className="rule"
-                        key={m.id}
-                        onClick={() => openOcrReview(m.id)}
-                      >
-                        <span>{m.emoji}</span>
-                        <div>
-                          <b>{m.name}</b>
-                          <small>{m.ingredient} · 확인 후 등록</small>
-                        </div>
-                        <span>＋</span>
-                      </button>
-                    ))}
-                  {!meds.some(
-                    (m) => ocr.includes(m.name) || ocr.includes(m.ingredient),
-                  ) && (
-                    <p className="muted">
-                      일치하는 후보가 없어요. 내 약에서 직접 검색하세요.
-                    </p>
-                  )}
-                </section>
-              </div>
-              <div className="tip">
-                ⓘ OCR은 약 이름과 용량을 잘못 읽을 수 있어요. 약 봉투 원본과
-                비교하세요.
-              </div>
-            </>
-          )}
+          {tab === "약 봉투 읽기" && <OcrPanel index={index} state={source.state} retry={retry}
+            onChoose={openOcrReview} onManual={() => openAdd()} />}
           {tab === "설정" && (
             <>
               <div className="page-title">
@@ -941,10 +605,6 @@ function App() {
                 <button
                   className="outline"
                   onClick={async () => {
-                    if (!window.isSecureContext)
-                      return setMessage(
-                        "현재 HTTP 주소에서는 시스템 알림을 사용할 수 없어요. 화면 알림은 작동합니다.",
-                      );
                     if (!("Notification" in window))
                       return setMessage(
                         "이 브라우저는 알림을 지원하지 않아요.",
@@ -960,7 +620,7 @@ function App() {
                   알림 권한 요청
                 </button>
                 <p className="muted">
-                  페이지를 열어 두면 복용 시간에 화면 알림이 표시됩니다. 브라우저 밖의 시스템 알림은 HTTPS 또는 localhost에서 권한을 허용한 경우에만 가능합니다.
+                  브라우저 알림은 페이지가 열려 있는 동안에만 동작합니다.
                 </p>
                 <h2>기록 백업</h2>
                 <button
@@ -1005,19 +665,19 @@ function App() {
                     }}
                   />
                 </label>
-                <h2>시연 데이터</h2>
+                <h2>이 브라우저의 데이터</h2>
                 <button
                   className="text-danger"
                   onClick={() => {
-                    if (confirm("모든 기록을 지우고 기본 데모로 돌아갈까요?"))
-                      setData(initial);
+                    if (confirm("이 브라우저의 모든 복약 일정과 기록을 지울까요?"))
+                      setData(emptyProfile);
                   }}
                 >
-                  데모 초기화
+                  저장 데이터 삭제
                 </button>
               </section>
               <div className="tip">
-                ⓘ 교육용 데모입니다. 진단·처방·복용 간격 결정에 사용하지 마세요.
+                ⓘ 제품정보는 식약처 원문을 참고하세요. 복용 방법은 실제 처방과 제품 안내를 확인하세요.
               </div>
             </>
           )}
@@ -1039,9 +699,7 @@ function App() {
               <button onClick={() => setModal("")}>×</button>
             </div>
             <p className="muted">
-              약 봉투에서 읽은 시간대만 표시했어요. 선택한 약의 지시가 맞는지
-              원본과 비교하고, 실제 복용할 시각으로 수정하세요. 아래 시각은 임시
-              예시이며 처방 시간이 아닙니다.
+              이 줄에서 읽힌 시간대도 실제로 선택한 약의 지시인지 원본을 확인하세요. 확인한 시간대를 선택하고 실제 복용할 시각을 직접 입력하세요.
             </p>
             {suggestions.length > 0 ? (
               <div className="ocr-slots">
@@ -1117,77 +775,14 @@ function App() {
               </div>
               <button onClick={() => setModal("")}>×</button>
             </div>
-            <input
-              className="search"
-              placeholder="제품명·성분명·품목번호 검색"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <p className="muted catalog-count">
-              예시 9개와 e약은요에서 정리한 일반약 {otcProducts.length}개를
-              검색할 수 있어요.
-            </p>
-            <div className="catalog">
-              {catalog
-                .filter((m) =>
-                  (
-                    m.name +
-                    " " +
-                    m.ingredient +
-                    " " +
-                    m.type +
-                    " " +
-                    (m.officialName || "") +
-                    " " +
-                    (m.itemId || "")
-                  )
-                    .toLowerCase()
-                    .includes(search.toLowerCase()),
-                )
-                .map((m) => (
-                  <button
-                    className={chosen === m.id ? "selected" : ""}
-                    key={m.id}
-                    onClick={() => setChosen(m.id)}
-                  >
-                    <span>{m.emoji}</span>
-                    <div>
-                      <b>{m.name}</b>
-                      <small>
-                        {m.ingredient} · {m.type}
-                      </small>
-                    </div>
-                    <span>{chosen === m.id ? "✓" : ""}</span>
-                  </button>
-                ))}
-            </div>
-            {selectedMed?.itemId && (
-              <div className="product-detail">
-                <b>제품과 성분 연결</b>
-                <p>품목일련번호: {selectedMed.itemId}</p>
-                <p>원문 제품명: {selectedMed.officialName}</p>
-                <p>기재된 성분: {selectedMed.ingredient}</p>
-                <p>원문 수정일: {selectedMed.sourceModified}</p>
-                <details>
-                  <summary>원문 주의사항·이상반응 보기</summary>
-                  <strong>함께 사용할 때 주의할 약·음식 원문</strong>
-                  <p className="notice-text">
-                    {selectedMed.notice?.cautionOriginal || "기재된 원문이 없어요."}
-                  </p>
-                  <strong>이상반응 원문</strong>
-                  <p className="notice-text">
-                    {selectedMed.notice?.adverseOriginal || "기재된 원문이 없어요."}
-                  </p>
-                </details>
-                <a href={selectedMed.source} target="_blank" rel="noreferrer">
-                  e약은요 검색 열기 ↗
-                </a>
-                <p className="muted">
-                  원문을 그대로 표시합니다. 이 내용만으로 약 사이의 상호작용을
-                  자동 판정하지 않습니다.
-                </p>
-              </div>
-            )}
+            <CatalogStatus state={source.state} retry={retry} />
+            {source.state === "ready" && <ProductPicker index={index} selectedCode={allOfficial.get(chosen)?.code}
+              onPick={(product) => setChosen(officialId(product))} />}
+            {chosen && <p><b>선택 · {find(chosen).name}</b></p>}
+            {data.custom.length > 0 && <details><summary>직접 입력해 둔 제품</summary>
+              <div className="catalog-list">{data.custom.map((product) => <button key={product.id} type="button" className="rule"
+                onClick={() => setChosen(product.id)}><span>{product.emoji}</span><div><b>{product.name}</b><small>사용자가 입력한 정보</small></div><span>→</span></button>)}</div>
+            </details>}
             <details>
               <summary>목록에 없는 제품 직접 입력</summary>
               <input
@@ -1253,18 +848,13 @@ function App() {
               우선입니다.
             </p>
             <ol>
-              {find(chosen).guide?.map((g, i) => (
-                <li key={i}>
-                  <span>{i + 1}</span>
-                  {g}
-                </li>
-              ))}
+              <li>복용하지 않은 것으로 기록했어요.</li>
+              <li>약 봉투와 제품의 사용법을 확인할 수 있어요.</li>
+              <li>다음 복용이 궁금하면 약사나 의료진에게 확인하세요.</li>
             </ol>
-            {find(chosen).source && (
-              <a href={find(chosen).source} target="_blank" rel="noreferrer">
-                공식 자료 보기 ↗
-              </a>
-            )}
+            {allOfficial.get(chosen) && <button className="outline full" onClick={() => {
+              setDetail(allOfficial.get(chosen)); setTab("의약품 정보"); setModal("");
+            }}>공식 제품 정보 보기</button>}
             <button className="primary full" onClick={() => setModal("")}>
               확인했어요
             </button>

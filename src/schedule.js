@@ -15,10 +15,10 @@ export function detectMealSlots(text) {
       if (key === "evening") return /저녁|석식/.test(normalized);
       return /취침\s*전|자기\s*전/.test(normalized);
     })
-    .map(({ key, label, exampleTime }) => ({
+    .map(({ key, label }) => ({
       key,
       label,
-      time: exampleTime,
-      selected: true,
+      time: "",
+      selected: false,
     }));
 }
