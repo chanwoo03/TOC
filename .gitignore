@@ -14,6 +14,7 @@
 
 # Credentials and machine-specific settings
 **/.vscode/sftp.json
+.vscode/
 .env
 .env.*
 !.env.example
@@ -27,3 +28,7 @@ Thumbs.db
 
 # Original downloaded dataset; the curated workbook is in 의약품_데이터/
 /e약은요정보검색.CSV
+
+# Local OCR experiments
+/test.ipynb
+/test.png

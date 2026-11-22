@@ -122,42 +122,74 @@ export const rules = [
     a: "thyroid",
     b: "calcium",
     title: "갑상선 약 + 칼슘",
+    condition: "예시 레보티록신 약과 칼슘 영양제",
     detail:
       "칼슘이 레보티록신 흡수를 줄일 수 있어요. 복용 간격은 처방과 제품 안내를 확인하세요.",
     source: "https://medlineplus.gov/druginfo/meds/a682461.html",
+    sourceName: "미국 국립의학도서관 MedlinePlus",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
   },
   {
     a: "thyroid",
     b: "iron",
     title: "갑상선 약 + 철분",
+    condition: "예시 레보티록신 약과 철분 영양제",
     detail:
       "철분이 레보티록신 흡수를 줄일 수 있어요. 복용 간격은 처방과 제품 안내를 확인하세요.",
     source: "https://medlineplus.gov/druginfo/meds/a682461.html",
+    sourceName: "미국 국립의학도서관 MedlinePlus",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
   },
   {
     a: "doxy",
     b: "calcium",
     title: "항생제 + 칼슘",
+    condition: "예시 독시사이클린 약과 칼슘 영양제",
     detail:
       "칼슘 보충제가 독시사이클린 흡수에 영향을 줄 수 있어요. 전문가에게 복용 간격을 확인하세요.",
     source: "https://medlineplus.gov/druginfo/meds/a682063.html",
+    sourceName: "미국 국립의학도서관 MedlinePlus",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
   },
   {
     a: "doxy",
     b: "iron",
     title: "항생제 + 철분",
+    condition: "예시 독시사이클린 약과 철분 영양제",
     detail:
       "철분 보충제가 독시사이클린 흡수에 영향을 줄 수 있어요. 전문가에게 복용 간격을 확인하세요.",
     source: "https://medlineplus.gov/druginfo/meds/a682063.html",
+    sourceName: "미국 국립의학도서관 MedlinePlus",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
   },
   {
     a: "cholesterol",
     b: "grapefruit",
     title: "콜레스테롤 약 + 자몽",
+    condition: "예시 심바스타틴 약과 자몽 또는 자몽주스",
     detail:
       "심바스타틴은 자몽과 상호작용할 수 있어요. 복용 중인 제품에 해당하는지 확인하세요.",
     source:
       "https://www.fda.gov/consumers/consumer-updates/grapefruit-juice-and-some-drugs-dont-mix",
+    sourceName: "미국 식품의약국 FDA",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
+  },
+  {
+    a: "otc-200108429",
+    b: "otc-200109769",
+    title: "아스피린프로텍트정 + 애드빌정",
+    condition: "두 품목번호의 제품을 실제로 함께 복용하려는 경우",
+    detail:
+      "애드빌정의 e약은요 원문은 저용량 아스피린과 함께 사용할 때 의사 또는 약사와 상의하도록 안내합니다. 처방받은 아스피린을 임의로 중단하지 말고 복용 전 확인하세요.",
+    source: "https://nedrug.mfds.go.kr/searchEasyDrug",
+    sourceName: "식약처 e약은요 · 애드빌정(품목번호 200109769)",
+    reviewStatus: "source_checked",
+    reviewedOn: "2026-11-11",
   },
 ];
 export const food = {
@@ -174,6 +206,7 @@ export const initial = {
     { id: "sample3", med: "tylenol", time: "21:00", active: false },
   ],
   logs: [],
+  snoozes: {},
   custom: [],
   name: "나",
 };
