@@ -1,0 +1,130 @@
+{
+ "s1": {
+  "title": "조제약 복약안내",
+  "meds": [
+   {
+    "name": "타이레놀정500밀리그람",
+    "description": "백색의 장방형 필름코팅정",
+    "effect": "[해열진통제]",
+    "instruction": "1정씩 3회 5일분"
+   },
+   {
+    "name": "지르텍정",
+    "description": "백색의 장방형 필름코팅정",
+    "effect": "[항히스타민제]",
+    "instruction": "1정씩 1회 5일분"
+   },
+   {
+    "name": "뮤테란캡슐200밀리그램",
+    "description": "청색 하양색의 경질캡슐",
+    "effect": "[진해거담제]",
+    "instruction": "1캡슐씩 3회 5일분"
+   },
+   {
+    "name": "레보프라이드정",
+    "description": "백색의 원형 정제",
+    "effect": "[위장운동조절제]",
+    "instruction": "1정씩 3회 5일분"
+   }
+  ]
+ },
+ "s1c": {
+  "title": "조제약 복약안내",
+  "meds": [
+   {
+    "name": "타이레놀정500밀리그람",
+    "description": "백색의 장방형 필름코팅정",
+    "effect": "[해열진통제]",
+    "instruction": "1정씩 3회 5일분"
+   },
+   {
+    "name": "지르텍정",
+    "description": "백색의 장방형 필름코팅정",
+    "effect": "[항히스타민제]",
+    "instruction": "1정씩 1회 5일분"
+   },
+   {
+    "name": "뮤테란캡슐200밀리그램",
+    "description": "청색 하양색의 경질캡슐",
+    "effect": "[진해거담제]",
+    "instruction": "1캡슐씩 3회 5일분"
+   },
+   {
+    "name": "레보프라이드정",
+    "description": "백색의 원형 정제",
+    "effect": "[위장운동조절제]",
+    "instruction": "1정씩 3회 5일분"
+   }
+  ]
+ },
+ "s2": {
+  "title": "복약안내",
+  "meds": [
+   {
+    "name": "베포타스틴정10밀리그램",
+    "description": "흰색의 원형 필름코팅정",
+    "effect": "[항알레르기약]",
+    "instruction": "1정씩 2회 7일분"
+   },
+   {
+    "name": "에페리손정50밀리그램",
+    "description": "흰색의 원형 당의정",
+    "effect": "[근이완제]",
+    "instruction": "1정씩 3회 7일분"
+   },
+   {
+    "name": "파모티딘정20밀리그램",
+    "description": "연한 황색의 원형 정제",
+    "effect": "[H2 차단제]",
+    "instruction": "0.5정씩 2회 7일분"
+   },
+   {
+    "name": "아세틸시스테인캡슐200밀리그램",
+    "description": "흰색의 경질캡슐",
+    "effect": "[진해거담제]",
+    "instruction": "1캡슐씩 3회 7일분"
+   },
+   {
+    "name": "프레드니솔론정5밀리그램",
+    "description": "흰색의 원형 정제",
+    "effect": "[부신피질호르몬제]",
+    "instruction": "2정씩 1회 3일분"
+   }
+  ]
+ },
+ "s2c": {
+  "title": "복약안내",
+  "meds": [
+   {
+    "name": "베포타스틴정10밀리그램",
+    "description": "흰색의 원형 필름코팅정",
+    "effect": "[항알레르기약]",
+    "instruction": "1정씩 2회 7일분"
+   },
+   {
+    "name": "에페리손정50밀리그램",
+    "description": "흰색의 원형 당의정",
+    "effect": "[근이완제]",
+    "instruction": "1정씩 3회 7일분"
+   },
+   {
+    "name": "파모티딘정20밀리그램",
+    "description": "연한 황색의 원형 정제",
+    "effect": "[H2 차단제]",
+    "instruction": "0.5정씩 2회 7일분"
+   },
+   {
+    "name": "아세틸시스테인캡슐200밀리그램",
+    "description": "흰색의 경질캡슐",
+    "effect": "[진해거담제]",
+    "instruction": "1캡슐씩 3회 7일분"
+   },
+   {
+    "name": "프레드니솔론정5밀리그램",
+    "description": "흰색의 원형 정제",
+    "effect": "[부신피질호르몬제]",
+    "instruction": "2정씩 1회 3일분"
+   }
+  ]
+ }
+}

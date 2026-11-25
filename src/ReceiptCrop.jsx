@@ -13,7 +13,7 @@ function point(event) {
   return { x: clamp((event.clientX - bounds.left) / bounds.width), y: clamp((event.clientY - bounds.top) / bounds.height) };
 }
 
-export function ReceiptCrop({ src, turns, area, selecting, onSelect }) {
+export function ReceiptCrop({ src, turns, area, selecting, onSelect, highlights = [] }) {
   const canvas = useRef(null);
   const start = useRef(null);
   const [draft, setDraft] = useState(null);
@@ -64,6 +64,9 @@ export function ReceiptCrop({ src, turns, area, selecting, onSelect }) {
       }}
       onPointerCancel={() => { start.current = null; setDraft(null); }}>
       <canvas ref={canvas} role="img" aria-label="선택한 약 봉투 미리보기" />
+      {highlights.map((box, position) => <div className="receipt-highlight" aria-hidden="true" key={position} style={{
+        left: box.x * 100 + "%", top: box.y * 100 + "%", width: box.width * 100 + "%", height: box.height * 100 + "%",
+      }} />)}
       {shown && <div className="receipt-selection" aria-hidden="true" style={{
         left: shown.x * 100 + "%", top: shown.y * 100 + "%",
         width: shown.width * 100 + "%", height: shown.height * 100 + "%",

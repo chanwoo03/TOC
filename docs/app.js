@@ -1,12 +1,25 @@
 "use strict";
 const slides = [
-  "MediSync AI · 이번 주 개발 현황",
-  "4주 계획과 현재 위치",
-  "100개 제품과 성분 연결",
-  "사진 ① 공통 성분 확인",
-  "사진 ② 출처가 있는 주의 사례",
-  "OCR은 연결했지만 인식 결과가 부정확",
-  "다음 주: 웹 마무리와 앱 전환"
+  "MediSync AI",
+  "웹 데모를 만들었고, 앱은 시험 단계입니다",
+  "앱이 판단하지 않고, 확인할 것을 보여 주는 흐름",
+  "계획은 두 번 크게 바뀌었습니다",
+  "개발 언어 · 환경",
+  "지금은 웹 화면 하나를 웹과 앱 시험판에 씁니다",
+  "프로젝트 구조: 폴더마다 맡은 일이 다릅니다",
+  "앱은 실무에서 많이 쓰는 방식으로 다시 만들 계획입니다",
+  "홈: 다음에 먹을 약을 가장 크게",
+  "약 정보: 식약처 e약은요를 설명서 한 장으로",
+  "사진: 품목일련번호로 공공데이터를 이어 붙였습니다",
+  "함께 먹기: 근거가 확인된 것만 경고합니다",
+  "약 봉투 OCR: 연결 성공과 정확도는 다릅니다",
+  ".gz 파일 하나 때문에 두 번 실패했습니다",
+  "알림: 코드보다 휴대폰 권한이 문제였습니다",
+  "디자인: 폰에서 깨지던 화면을 약국 봉투처럼",
+  "변경 이력: 지금까지는 main에 바로 올렸습니다",
+  "아직 부족한 점",
+  "다음 단계와 배운 점",
+  "감사합니다"
 ];
 const image = document.getElementById("slide"), counter = document.getElementById("counter");
 const title = document.getElementById("slide-title"), previous = document.getElementById("previous"), next = document.getElementById("next");
@@ -14,7 +27,7 @@ const viewer = document.getElementById("viewer"), list = document.getElementById
 const listButton = document.getElementById("toggle-list"), fullscreen = document.getElementById("fullscreen");
 const errorMessage = document.getElementById("image-error"), notice = document.getElementById("notice");
 let current = 0, touchStart = null;
-const path = i => "slides-20261111-v3/slide-" + String(i + 1).padStart(2, "0") + ".png";
+const path = i => "slides-20261127/slide-" + String(i + 1).padStart(2, "0") + ".png";
 function fromHash() { const m = location.hash.match(/^#slide-(\d+)$/); return m ? Math.min(slides.length - 1, Math.max(0, Number(m[1]) - 1)) : 0; }
 function show(index, updateHash = true) {
   current = Math.min(slides.length - 1, Math.max(0, index)); errorMessage.hidden = true;

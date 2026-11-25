@@ -29,6 +29,16 @@ export async function loadOfficialCatalog(signal) {
   return response.json();
 }
 
+// 낱알 사진·식별 정보 (scripts/fetch-pill-images.py 로 만든 파일). 파일이 없으면 빈 목록.
+let pillImagesPromise;
+export function loadPillImages() {
+  pillImagesPromise ??= fetch(new URL(import.meta.env.BASE_URL + "data/pill-images.json", document.baseURI))
+    .then((response) => (response.ok ? response.json() : { items: {} }))
+    .then((data) => data?.items ?? {})
+    .catch(() => ({}));
+  return pillImagesPromise;
+}
+
 export function normalize(value) {
   return String(value ?? "").normalize("NFKC").toLowerCase()
     .replace(/밀리그램|밀리그람/g, "mg")

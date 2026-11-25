@@ -11,9 +11,13 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "android": "npm run build && npx cap sync android && node scripts/android-assets.mjs",
     "format": "prettier --write src index.html vite.config.js"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/local-notifications": "^8.3.1",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/kor": "1.0.0",
     "lucide-react": "0.468.0",
@@ -23,6 +27,7 @@
     "tesseract.js-core": "5.1.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "prettier": "3.6.2",
     "vite": "5.4.10"
   }

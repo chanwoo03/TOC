@@ -1,15 +1,33 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import { comparisonHighlights, duplicateIngredients, hasComparisonNotice, noticeIndexes, noticeTopics, searchProducts, sections, sourceCatalog, sourceDur, warnsAgainstSameIngredient, warningSuggestions } from "./catalog.js";
+import { comparisonHighlights, loadPillImages, duplicateIngredients, hasComparisonNotice, noticeIndexes, noticeTopics, searchProducts, sections, sourceCatalog, sourceDur, warnsAgainstSameIngredient, warningSuggestions } from "./catalog.js";
 import { rules } from "./data.js";
 import { getReviewedProductRule, isReviewedRule } from "./safety.js";
+import { ChevronRight, Pill, TriangleAlert } from "lucide-react";
 
 const PAGE_SIZE = 30;
+
+function usePillImages() {
+  const [images, setImages] = useState({});
+  useEffect(() => {
+    let alive = true;
+    loadPillImages().then((items) => alive && setImages(items));
+    return () => { alive = false; };
+  }, []);
+  return images;
+}
+
+function PillThumb({ pill, size = 18 }) {
+  if (pill?.image) return <span aria-hidden="true" className="med-emoji med-photo">
+    <img src={pill.image} alt="" loading="lazy" referrerPolicy="no-referrer" /></span>;
+  return <span aria-hidden="true" className="med-emoji med-otc"><Pill size={size} strokeWidth={1.9} /></span>;
+}
 const reviewedCases = rules.filter(isReviewedRule);
 
 export function ProductPicker({ index, onPick, label = "제품 검색", selectedCode, paginate = false }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const matches = useMemo(() => searchProducts(index, query), [index, query]);
+  const images = usePillImages();
   const visible = (paginate || query.trim()) ? matches.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) : [];
   return <div className="catalog-picker">
     <label>
@@ -22,9 +40,9 @@ export function ProductPicker({ index, onPick, label = "제품 검색", selected
       {visible.map((product) => (
         <button type="button" className={product.code === selectedCode ? "rule selected" : "rule"}
           key={product.code} onClick={() => onPick(product)} aria-pressed={product.code === selectedCode}>
-          <span aria-hidden="true">💊</span>
+          <PillThumb pill={images[product.code]} />
           <div><b>{product.name}</b><small>{product.ingredients} · {product.manufacturer}</small></div>
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true"><ChevronRight size={18} /></span>
         </button>
       ))}
     </div>
@@ -38,26 +56,101 @@ export function ProductPicker({ index, onPick, label = "제품 검색", selected
   </div>;
 }
 
+// 약 한 개의 상세: 제품 정보 → 쉬운 설명 → 주의사항 → 함께 먹기 → 보관 순서.
+// 자료가 비어 있으면 "없다"고 그대로 보여 주고, 안전하다고 해석하지 않는다.
+function SheetText({ text, empty }) {
+  return text?.trim() ? <p className="source-text">{text}</p> : <p className="sheet-empty">{empty}</p>;
+}
+
 export function ProductDetails({ product, onAdd }) {
   if (!product) return <div className="info">제품을 선택하면 공식 설명을 볼 수 있어요.</div>;
   const official = product.sections;
-  return <article className="catalog-details">
-    <h2>{product.name}</h2>
-    <dl>
-      <div><dt>품목코드</dt><dd>{product.code}</dd></div>
-      <div><dt>제조·수입 업체</dt><dd>{product.manufacturer}</dd></div>
-      <div><dt>주성분</dt><dd>{product.ingredients}</dd></div>
-      <div><dt>공개일</dt><dd>{product.publishedOn}</dd></div>
-      <div><dt>수정일</dt><dd>{product.revisedOn}</dd></div>
-    </dl>
-    <a href={product.url} target="_blank" rel="noreferrer">식약처 공식 제품 상세 ↗</a>
-    {onAdd && <button type="button" className="primary" onClick={() => onAdd(product)}>이 제품으로 일정 추가</button>}
-    {sections.map(([name, heading]) => (
-      <details key={name} open={name === "interactions" ? true : undefined}>
-        <summary>{heading}</summary>
-        <p className="source-text">{official[name] || "공식 원본에 이 항목이 비어 있어요."}</p>
-      </details>
-    ))}
+  const label = Object.fromEntries(sections);
+  const highlights = comparisonHighlights(product);
+  const missing = "e약은요 자료에 이 항목이 없어요. 식약처 제품 상세의 허가 원문에서 확인하세요.";
+  const cautionKeys = ["warnings", "precautions", "adverse_reactions"];
+  const cautionCount = cautionKeys.filter((key) => official[key]?.trim()).length;
+  const pill = usePillImages()[product.code];
+  const pillRows = pill ? [
+    ["모양", [pill.shape, pill.form].filter(Boolean).join(" · ")],
+    ["색", [pill.colorFront, pill.colorBack].filter(Boolean).join(" / ")],
+    ["새긴 글자", [pill.printFront && "앞 " + pill.printFront, pill.printBack && "뒤 " + pill.printBack].filter(Boolean).join(", ")],
+    ["분할선", [pill.lineFront && "앞 " + pill.lineFront, pill.lineBack && "뒤 " + pill.lineBack].filter(Boolean).join(", ")],
+    ["크기(mm)", [pill.lengthLong, pill.lengthShort, pill.thickness].some(Boolean)
+      ? `장축 ${pill.lengthLong ?? "-"} · 단축 ${pill.lengthShort ?? "-"} · 두께 ${pill.thickness ?? "-"}` : ""],
+    ["성상", pill.chart],
+  ].filter(([, value]) => value) : [];
+  return <article className="catalog-details product-sheet">
+    <header className="sheet-head">
+      {pill?.image ? null : <span className="sheet-photo" aria-hidden="true"><Pill size={30} strokeWidth={1.6} /></span>}
+      <div>
+        <h2>{product.name}</h2>
+        <p className="muted">{product.manufacturer}</p>
+      </div>
+    </header>
+    {pill?.image ? <figure className="sheet-figure">
+      <img src={pill.image} alt={product.name + " 낱알 사진"} loading="lazy" referrerPolicy="no-referrer" />
+      <figcaption>참고용 사진이에요. 모양이 같아도 함량이 다를 수 있으니 제품명과 함량을 함께 확인하세요.</figcaption>
+    </figure> : <p className="sheet-photo-note">이 제품은 식약처 낱알식별 자료에 사진이 없어요.</p>}
+    {onAdd && <button type="button" className="primary full" onClick={() => onAdd(product)}>이 제품으로 일정 추가</button>}
+
+    <section className="sheet-section">
+      <h3>제품 정보</h3>
+      <dl>
+        <div><dt>주성분</dt><dd>{product.ingredients}</dd></div>
+        <div><dt>품목일련번호</dt><dd>{product.code}</dd></div>
+        <div><dt>자료 수정일</dt><dd>{product.revisedOn || product.publishedOn || "확인 안 됨"}</dd></div>
+      </dl>
+    </section>
+
+    {pillRows.length > 0 && <section className="sheet-section">
+      <h3>생김새</h3>
+      <dl>{pillRows.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
+    </section>}
+
+    <section className="sheet-section">
+      <h3>어떤 약인가요</h3>
+      <h4>{label.efficacy}</h4>
+      <SheetText text={official.efficacy} empty={missing} />
+      <h4>{label.directions}</h4>
+      <SheetText text={official.directions} empty={missing} />
+      <p className="muted">실제 복용량과 시간은 처방 지시나 약 봉투를 따르세요.</p>
+    </section>
+
+    <section className="sheet-section">
+      <h3>주의사항</h3>
+      <p className="muted">{cautionCount ? `원문 ${cautionCount}개 항목이 있어요. 눌러서 펼쳐 보세요.` : "e약은요 자료에 주의사항이 없어요. 없다고 해서 안전하다는 뜻은 아니에요."}</p>
+      {cautionKeys.map((key) => official[key]?.trim() && <details key={key}>
+        <summary>{label[key]}</summary>
+        <p className="source-text">{official[key]}</p>
+      </details>)}
+      {highlights.stopForSymptoms && <p className="sheet-flag">이상 증상이 나타나면 복용을 멈추고 의사나 약사와 상의하라고 안내해요.</p>}
+    </section>
+
+    <section className="sheet-section">
+      <h3>함께 먹을 때</h3>
+      {official.interactions?.trim() ? <>
+        {(highlights.avoidTogether || highlights.checkFirst || highlights.avoidAlcohol) && <ul className="sheet-flags">
+          {highlights.avoidTogether && <li>같이 먹지 말라고 안내된 약이나 음식이 있어요.</li>}
+          {highlights.checkFirst && <li>함께 먹기 전에 의사나 약사에게 물어봐야 하는 약이 있어요.</li>}
+          {highlights.avoidAlcohol && <li>먹는 동안 술을 마시지 말라고 안내해요.</li>}
+        </ul>}
+        <details open>
+          <summary>{label.interactions} 원문</summary>
+          <p className="source-text">{official.interactions}</p>
+        </details>
+      </> : <p className="sheet-empty">e약은요 자료에 함께 먹을 때의 주의 내용이 없어요. 함께 먹어도 된다는 뜻은 아니니 약사에게 확인하세요.</p>}
+    </section>
+
+    <section className="sheet-section">
+      <h3>{label.storage}</h3>
+      <SheetText text={official.storage} empty={missing} />
+    </section>
+
+    <footer className="sheet-source">
+      <p>출처: 식약처 e약은요{pill ? ", 식약처 의약품 낱알식별 정보(사진 제작 약학정보원)" : ""}. 허가받은 사용상 주의사항 전체는 식약처 제품 상세에서 볼 수 있어요.</p>
+      <a href={product.url} target="_blank" rel="noreferrer">식약처 제품 상세 원문 ↗</a>
+    </footer>
   </article>;
 }
 
@@ -70,9 +163,15 @@ export function CatalogPage({ index, selected, onSelect, onAdd, state, retry }) 
     <div className="columns catalog-columns">
       <section className="panel">
         <CatalogStatus state={state} retry={retry} />
-        {state === "ready" && <ProductPicker index={index} selectedCode={selected?.code} onPick={onSelect} paginate />}
+        {state === "ready" && <ProductPicker index={index} selectedCode={selected?.code} paginate onPick={(product) => {
+          onSelect(product);
+          // 좁은 화면에서는 상세가 목록 아래에 있으니 바로 보이게 내려 줌
+          if (window.matchMedia("(max-width: 1000px)").matches) requestAnimationFrame(() =>
+            document.getElementById("product-sheet")?.scrollIntoView({
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }));
+        }} />}
       </section>
-      <section className="panel"><ProductDetails product={selected} onAdd={onAdd} /></section>
+      <section className="panel" id="product-sheet"><ProductDetails product={selected} onAdd={onAdd} /></section>
     </div>
   </>;
 }
@@ -258,9 +357,9 @@ function CompareProductSelect({ label, index, ordered, selected, onPick, suggest
         : "주의사항에서 찾은 약이 없어요. 직접 검색할 수 있어요."}</p>
       {suggestions.slice(0, 3).map(({ product, ingredient }) => (
         <button key={product.code} type="button" className="rule" onClick={() => pick(product)}>
-          <span aria-hidden="true">⚠</span>
+          <span aria-hidden="true"><TriangleAlert size={18} /></span>
           <span><b>{product.name}</b><small>주의사항에 나온 성분 · {ingredient}</small></span>
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true"><ChevronRight size={18} /></span>
         </button>
       ))}
     </div>}
@@ -270,9 +369,16 @@ function CompareProductSelect({ label, index, ordered, selected, onPick, suggest
 function RuleInformation({ rule }) {
   return <>
     <p><b>이런 경우에 해당해요</b> · {rule.condition}</p>
+    {rule.ingredientA && rule.ingredientB && <div className="rule-reason">
+      <p><b>관련 성분</b> · {rule.ingredientA} + {rule.ingredientB}</p>
+      <p><b>왜 주의하나요?</b> · {rule.mechanism}</p>
+      <p><b>가능한 영향</b> · {rule.possibleConsequence}</p>
+      <p><b>확인할 일</b> · {rule.action}</p>
+    </div>}
     <p>{rule.detail}</p>
     <small>출처 확인일 {rule.reviewedOn}</small><br />
     <a href={rule.source} target="_blank" rel="noreferrer">{rule.sourceName} 원문 ↗</a>
+    {rule.supportingSource && <p><a href={rule.supportingSource} target="_blank" rel="noreferrer">미국 FDA 관련 설명 ↗</a></p>}
   </>;
 }
 
@@ -281,8 +387,8 @@ export function ComparePage({ index, activeProducts, unlinked, state, retry }) {
   const [second, setSecond] = useState();
   const compareHeading = useRef(null);
   const compareIndex = useMemo(() => index.filter(({ product }) => hasComparisonNotice(product)), [index]);
-  const ordered = useMemo(() => compareIndex.map(({ product }) => product)
-    .sort((a, b) => a.name.localeCompare(b.name, "ko")), [compareIndex]);
+  const ordered = useMemo(() => index.map(({ product }) => product)
+    .sort((a, b) => a.name.localeCompare(b.name, "ko")), [index]);
   const productsByRuleId = useMemo(() => new Map(ordered.map((product) => ["otc-" + product.code, product])), [ordered]);
   const suggestions = useMemo(() => first ? warningSuggestions(compareIndex, first) : undefined, [compareIndex, first]);
   const activeWithNotices = activeProducts.filter(hasComparisonNotice);
@@ -298,14 +404,15 @@ export function ComparePage({ index, activeProducts, unlinked, state, retry }) {
       <h2 ref={compareHeading} tabIndex={-1}>제품 두 가지 비교</h2>
       <CatalogStatus state={state} retry={retry} />
       {state === "ready" && <div className="compare catalog-compare">
-        <CompareProductSelect label="첫 번째 약" index={compareIndex} ordered={ordered} selected={first} onPick={setFirst} />
-        <CompareProductSelect label="두 번째 약" index={compareIndex} ordered={ordered} selected={second} onPick={setSecond} suggestions={suggestions} />
+        <CompareProductSelect label="첫 번째 약" index={index} ordered={ordered} selected={first} onPick={setFirst} />
+        <CompareProductSelect label="두 번째 약" index={index} ordered={ordered} selected={second} onPick={setSecond} suggestions={suggestions} />
       </div>}
       {same && <p role="status">주성분을 비교하려면 서로 다른 제품을 골라 주세요.</p>}
       {reviewed && <article className="warning" aria-label="선택한 약 조합의 주의사항">
         <h3>{reviewed.title}</h3>
         <RuleInformation rule={reviewed} />
       </article>}
+      {first && second && !same && !reviewed && <p className="info">이 두 제품의 검토 완료된 상호작용 규칙은 아직 없어요. 안전하다는 뜻은 아닙니다. 아래 제품별 원문과 식약처 조합 조회를 확인하세요.</p>}
       {evidence && <p className="info">{evidence.source.name}의 주의사항에 ‘{evidence.ingredient}’이 나와요.</p>}
       {selected.length > 0 && <OfficialWarnings products={selected} />}
       <div className="info">
